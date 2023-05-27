@@ -34,9 +34,18 @@ class _NewItemState extends State<NewItem> {
                 ),
                 //validator permette di prendere in input una string e inoltre restituisce una stringa
                 //quindi passando una funzione possiamo passare un controllo e se il controllo fallisce
-                //restituiamo l'errore
+                //restituiamo l'errore e se passa il controllo allora viene inviato correttamente
+                //trim server per indicare se il valore è stato tagliato "rimuove gli spazi bianchi all'inizio e alla fine"
+                //quindi se qualcosa è stato tagliato restituisco errore
+                //l'ultima condizione invece per dire che la lunghezza non deve essere superiore a 50 dopo aver tolto gli spazi vuoti
                 validator: (value) {
-                  return 'Demo...';
+                  if (value == null ||
+                      value.isEmpty ||
+                      value.trim().length < 1 ||
+                      value.trim().length > 50) {
+                    return 'Must be between 1 and 50 character';
+                  }
+                  return null;
                 },
                 maxLines: 3,
                 minLines: 1,
@@ -55,6 +64,16 @@ class _NewItemState extends State<NewItem> {
                       ),
                       //valore iniziale "stringa"
                       initialValue: '1',
+                      //tryParse da null quando prova a convertira una stringa non numerica
+                      validator: (value) {
+                        if (value == null ||
+                            value.isEmpty ||
+                            int.tryParse(value) == null ||
+                            int.tryParse(value)! <= 0) {
+                          return 'Must be a valid positive number';
+                        }
+                        return null;
+                      },
                     ),
                   ),
                   const SizedBox(
@@ -95,6 +114,19 @@ class _NewItemState extends State<NewItem> {
                       onChanged: (value) {},
                     ),
                   )
+                ],
+              ),
+              const SizedBox(
+                height: 12,
+              ),
+              Row(
+                //asse orizzontale
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  //reimpostare il modulo
+                  TextButton(onPressed: () {}, child: const Text('Rest')),
+                  //inviare il modulo
+                  ElevatedButton(onPressed: () {}, child: const Text('Invia')),
                 ],
               )
             ],
