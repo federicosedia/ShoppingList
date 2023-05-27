@@ -10,6 +10,20 @@ class NewItem extends StatefulWidget {
 }
 
 class _NewItemState extends State<NewItem> {
+  //creo una nuova globalkey usando il costruttore globalkey
+  //crea un oggetto di tipo globalkey che può essere utilizzato nel form
+  //la globalkey è generica però posso dire a flutter a chi è collegata
+  final _formKey = GlobalKey<FormState>();
+
+//in questa funzione attivo la validazione
+//quindi il metodo save non può essere eseguito prima del build e che quindi form è stato chiamato
+//perchè può essere eseguito solo dall'elevatebutton generato dal metodo build
+//il validate dietro le quinte chiamata tutti i formfield ed esegue i validate
+//ed eseguira
+  void _saveItem() {
+    _formKey.currentState!.validate();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -23,6 +37,15 @@ class _NewItemState extends State<NewItem> {
         //il fomr è una combinazione di campi di input
         //ha incorparato anche dei controlli come la validazione dei dati inseriti
         child: Form(
+          //per dire a flutter che devono essere eseguiti tutti i controlli di validazione
+          //l'accesso al form avviene tramite una chiave
+          //non viene quindi utilizzata solo per identificare i widget in un elenco
+          //la key però verrà creata come proprietà
+          //la global ci permette di accedere facilmente ai widget dove è collegata
+          //e se viene settato un nuovo stato non viene ricostruito
+          //è lo stato interno che dirà a flutter se mostrare alcuni errori di validazione oppure no
+          //la chiave globale serve sopratutto per i moduli
+          key: _formKey,
           child: Column(
             children: [
               //con form utilizzo texformfiled a differenza di texfield
@@ -64,6 +87,7 @@ class _NewItemState extends State<NewItem> {
                       ),
                       //valore iniziale "stringa"
                       initialValue: '1',
+                      keyboardType: TextInputType.number,
                       //tryParse da null quando prova a convertira una stringa non numerica
                       validator: (value) {
                         if (value == null ||
@@ -124,9 +148,15 @@ class _NewItemState extends State<NewItem> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   //reimpostare il modulo
-                  TextButton(onPressed: () {}, child: const Text('Rest')),
+                  TextButton(
+                      onPressed: () {
+                        //metodo reset per reseattare
+                        _formKey.currentState!.reset();
+                      },
+                      child: const Text('Rest')),
                   //inviare il modulo
-                  ElevatedButton(onPressed: () {}, child: const Text('Invia')),
+                  ElevatedButton(
+                      onPressed: _saveItem, child: const Text('Invia')),
                 ],
               )
             ],
