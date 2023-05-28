@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shopping_list/data/categories.dart';
+import 'package:shopping_list/models/category.dart';
 
 class NewItem extends StatefulWidget {
   const NewItem({super.key});
@@ -15,13 +16,23 @@ class _NewItemState extends State<NewItem> {
   //la globalkey è generica però posso dire a flutter a chi è collegata
   final _formKey = GlobalKey<FormState>();
 
+  var _enteredName = '';
+  var _enteredQuantity = 1;
+  var _selectedCategory = categories[Categories.vegetables]!;
+
 //in questa funzione attivo la validazione
 //quindi il metodo save non può essere eseguito prima del build e che quindi form è stato chiamato
 //perchè può essere eseguito solo dall'elevatebutton generato dal metodo build
 //il validate dietro le quinte chiamata tutti i formfield ed esegue i validate
 //ed eseguira
+//il metodo save attiva una funzione speciale che si trova nel textformfield
+//la funzione è onsaved
+//metto tutto dentro un if la validazione, cosi se supera la validazione
+//salvo la configurazione
   void _saveItem() {
-    _formKey.currentState!.validate();
+    if (_formKey.currentState!.validate()) {
+      _formKey.currentState!.save();
+    }
   }
 
   @override
@@ -64,12 +75,24 @@ class _NewItemState extends State<NewItem> {
                 validator: (value) {
                   if (value == null ||
                       value.isEmpty ||
-                      value.trim().length < 1 ||
+                      value.trim().length <= 1 ||
                       value.trim().length > 50) {
                     return 'Must be between 1 and 50 character';
                   }
                   return null;
                 },
+                //"value" = valore passato in saveitem
+                //quindi lo pongo uguale a la nuova variabile dove voglio salvare la stringa
+
+                onSaved: (value) {
+                  //non necessario perchè ho la validazioni
+                  // if (value == null) {
+                  // return;
+                  //}
+
+                  _enteredName = value!;
+                },
+                //numero linee massimo
                 maxLines: 3,
                 minLines: 1,
               ),
@@ -86,7 +109,8 @@ class _NewItemState extends State<NewItem> {
                         ),
                       ),
                       //valore iniziale "stringa"
-                      initialValue: '1',
+                      //quindi prendo il valore iniziale e lo cambio in stringa anche se voglio un numero
+                      initialValue: _enteredQuantity.toString(),
                       keyboardType: TextInputType.number,
                       //tryParse da null quando prova a convertira una stringa non numerica
                       validator: (value) {
@@ -98,6 +122,12 @@ class _NewItemState extends State<NewItem> {
                         }
                         return null;
                       },
+                      onSaved: (value) {
+                        //parse lancia un errore se non riesce a convertire in numero
+                        //mentre try restituisce null
+                        //value sarà sempre una string però io voglio un numero quindi chiamo parse
+                        _enteredQuantity = int.parse(value!);
+                      },
                     ),
                   ),
                   const SizedBox(
@@ -106,7 +136,10 @@ class _NewItemState extends State<NewItem> {
                   //pulsante a discesa per scegliere una categoria
                   //anche qui come sopra devo vincolarlo orizzontalmente con expandend
                   Expanded(
+                    //non è necessario (rispetto quanto scritto in onchange) prevedere anche il onsave
                     child: DropdownButtonFormField(
+                      //non supporta initialvalue ma solo value
+                      value: _selectedCategory,
                       //lista di categorie ma le categorie essendo una mappa
                       //verrà richiamato con entries per convertirlo
                       //è una proprietà che fornisce un iterabile che contiene le mappe chiave valore
@@ -115,7 +148,7 @@ class _NewItemState extends State<NewItem> {
                           DropdownMenuItem(
                             //nel menù a tendina vedrò tutti i valori associati
                             //quindi colore e titolo
-                            value: category.value,
+                            value: _selectedCategory,
                             child: Row(
                               children: [
                                 //container per box con colore della categoria
@@ -135,7 +168,14 @@ class _NewItemState extends State<NewItem> {
                             ),
                           ),
                       ],
-                      onChanged: (value) {},
+                      onChanged: (value) {
+                        //qui dobbiamo chiamare anche il setstate a differenza degli altri onchanged
+                        //questo perchè la categoria selezionata viene utilizzata per impostare il valore visibile
+                        //quindi deve essere sincronizzato con quanto scelto nel menù a tendina
+                        setState(() {
+                          _selectedCategory = value!;
+                        });
+                      },
                     ),
                   )
                 ],

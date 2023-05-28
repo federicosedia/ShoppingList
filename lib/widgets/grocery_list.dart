@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/src/widgets/framework.dart';
-import 'package:flutter/src/widgets/placeholder.dart';
 import 'package:shopping_list/data/dummy_items.dart';
 import 'package:shopping_list/widgets/new_item.dart';
 
@@ -28,7 +26,7 @@ class _GroceryListState extends State<GroceryList> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           'Your Groceries',
         ),
         actions: [
