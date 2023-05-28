@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shopping_list/data/categories.dart';
 import 'package:shopping_list/models/category.dart';
+import 'package:shopping_list/models/grocery_item.dart';
 
 class NewItem extends StatefulWidget {
   const NewItem({super.key});
@@ -32,6 +33,20 @@ class _NewItemState extends State<NewItem> {
   void _saveItem() {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
+      //posso passare i dati da questo screen allo screen della lista di grocery
+      //per farlo utilizzo il navigator.pop (devo uscire da questo screen per andare nel prossimo)
+      //si naviga vs la schermata A rimuovendo la schermata B "B= nuovo oggetto" "A= lista oggetti"
+      //con pop inoltre possiamo passare alcuni dati
+      Navigator.of(context).pop(
+        GroceryItem(
+          //per id utilizzo il datastamp
+          id: DateTime.now().toString(),
+          //_enteredName salvato con save
+          name: _enteredName,
+          quantity: _enteredQuantity,
+          category: _selectedCategory,
+        ),
+      );
     }
   }
 

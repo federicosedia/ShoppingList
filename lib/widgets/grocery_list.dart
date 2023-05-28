@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:shopping_list/data/dummy_items.dart';
+
+import 'package:shopping_list/models/grocery_item.dart';
 import 'package:shopping_list/widgets/new_item.dart';
 
 class GroceryList extends StatefulWidget {
@@ -10,16 +11,32 @@ class GroceryList extends StatefulWidget {
 }
 
 class _GroceryListState extends State<GroceryList> {
+  //qui salverò tutti gli oggetti che andrò ad aggiungere tramite il form
+  //ed essendo una lista di oggetti di quel tipo salvo in questo modo la proprietà
+  final List<GroceryItem> _groceryItems = [];
 //context non disponibile in stateless quindi aggiungo come argomento
-  void _addItem() {
+  void _addItem() async {
     //push -> la mia nuova screen va sopra quella precedente
     //materialpage route prende la funzioone builder dove ottinaimo per ogni contesto
     //la schermata da buildare
-    Navigator.of(context).push(
+    //dato che stiamo passando dei dati dalla schermata b alla schermata a
+    //tramite questo metodo verranno aggiunti ma solo una volta che verranno passati
+    //quindi dovrò utilizzare async e await
+    //push produce un futuro che contiene i dati che possono essere tornati tramite la nuova schermata
+    //può essere nullo perchè possiamo tornare indietro
+    final newItem = await Navigator.of(context).push<GroceryItem>(
       MaterialPageRoute(
         builder: (ctx) => const NewItem(),
       ),
     );
+//se è nullo allora ritorno null
+    if (newItem == null) {
+      return;
+    }
+//setstate per aggiornare lo stato quando viene aggiunto il nuovo elemento
+    setState(() {
+      _groceryItems.add(newItem);
+    });
   }
 
   @override
@@ -38,18 +55,18 @@ class _GroceryListState extends State<GroceryList> {
         ],
       ),
       body: ListView.builder(
-        itemCount: groceryItems.length,
+        itemCount: _groceryItems.length,
         itemBuilder: (BuildContext context, int index) {
           return ListTile(
-            title: Text(groceryItems[index].name),
+            title: Text(_groceryItems[index].name),
             //indicatore per la categoria: quadrato con un colore della categoria
             leading: Container(
               width: 24,
               height: 24,
-              color: groceryItems[index].category.color,
+              color: _groceryItems[index].category.color,
             ),
             //quantità
-            trailing: Text(groceryItems[index].quantity.toString()),
+            trailing: Text(_groceryItems[index].quantity.toString()),
           );
         },
       ),
