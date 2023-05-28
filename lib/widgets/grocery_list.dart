@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shopping_list/data/dummy_items.dart';
 
 import 'package:shopping_list/models/grocery_item.dart';
 import 'package:shopping_list/widgets/new_item.dart';
@@ -39,8 +40,49 @@ class _GroceryListState extends State<GroceryList> {
     });
   }
 
+  void _removeditem(GroceryItem item) {
+    setState(() {
+      _groceryItems.remove(item);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    Widget content = const Center(
+      child: Text('No items added yet'),
+    );
+
+    if (_groceryItems.isNotEmpty) {
+      content = ListView.builder(
+        itemCount: _groceryItems.length,
+        itemBuilder: (BuildContext context, int index) =>
+            //avvolgendo il widget listitle con dismissibile
+            //posso scorrere gli elementi per eliminarli
+            //per farlo aggiungo anche la chiave e utilizzo la valuekey
+            //con la valuekey utilizzo come indiceunivoco l'id dell'oggetto
+            //inoltre utilizzo ondismissed per permettere tramite lo scorrimento
+            //di far avviare un metodo che ho creato
+            //esso andrà a rimuovere l'oggetto che si sta scorrendo
+            Dismissible(
+          key: ValueKey(_groceryItems[index].id),
+          onDismissed: (direction) {
+            _removeditem(_groceryItems[index]);
+          },
+          child: ListTile(
+            title: Text(_groceryItems[index].name),
+            //indicatore per la categoria: quadrato con un colore della categoria
+            leading: Container(
+              width: 24,
+              height: 24,
+              color: _groceryItems[index].category.color,
+            ),
+            //quantità
+            trailing: Text(_groceryItems[index].quantity.toString()),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -54,22 +96,7 @@ class _GroceryListState extends State<GroceryList> {
               icon: const Icon(Icons.add))
         ],
       ),
-      body: ListView.builder(
-        itemCount: _groceryItems.length,
-        itemBuilder: (BuildContext context, int index) {
-          return ListTile(
-            title: Text(_groceryItems[index].name),
-            //indicatore per la categoria: quadrato con un colore della categoria
-            leading: Container(
-              width: 24,
-              height: 24,
-              color: _groceryItems[index].category.color,
-            ),
-            //quantità
-            trailing: Text(_groceryItems[index].quantity.toString()),
-          );
-        },
-      ),
+      body: content,
     );
   }
 }
