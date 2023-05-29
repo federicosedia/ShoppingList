@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shopping_list/data/categories.dart';
 import 'package:shopping_list/models/category.dart';
-import 'package:shopping_list/models/grocery_item.dart';
 
 //per poter salvare nel database di firebase i dati che passiamo
 //altirmenti verrebbero salvati solo localmente
@@ -89,8 +88,8 @@ class _NewItemState extends State<NewItem> {
       //quindi provo a stampare nella console lo status e il body
       //dopodichè chiamo il metodo pop. Però per evitare problemi sul contesto che potrebbe ancora e
       //perchè non potrei utilizzare il context dopo async perchè non sappiamo se è lo stesso
-      print(response.body);
-      print(response.statusCode);
+//      print(response.body);
+//    print(response.statusCode);
       //quindi aggiungo questo if per controllare se è a schermo oppure no
       if (!context.mounted) {
         return;
