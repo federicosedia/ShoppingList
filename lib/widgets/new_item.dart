@@ -1,7 +1,15 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:shopping_list/data/categories.dart';
 import 'package:shopping_list/models/category.dart';
 import 'package:shopping_list/models/grocery_item.dart';
+
+//per poter salvare nel database di firebase i dati che passiamo
+//altirmenti verrebbero salvati solo localmente
+//verrà fatto tramite una richiesta http
+//con "as" diciamo che tutti i pacchetti verranno raggruppati in un oggetto con nome http
+import 'package:http/http.dart' as http;
 
 class NewItem extends StatefulWidget {
   const NewItem({super.key});
@@ -30,23 +38,81 @@ class _NewItemState extends State<NewItem> {
 //la funzione è onsaved
 //metto tutto dentro un if la validazione, cosi se supera la validazione
 //salvo la configurazione
-  void _saveItem() {
+  void _saveItem() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
+      //creiamo una url e la salviamo nella variabile url
+      //possiamo utilizzare la classe uri che accetta come costruttore https
+      //che crea una url che punta ad un backend https
+      //la prima parte dell'url può essere presa dal db di firebase "prima della virgola"
+      //la seconda parte viene decisa da noi ma deve essere aggiunto .json che è richiesto da firebase
+      //appena invieremo dati in firebase verrà creato un nodo con il secondo nome deciso da noi
+      final url = Uri.https(
+          'shopping-list-app-3fce2-default-rtdb.firebaseio.com',
+          'shopping-list.json');
+      //get per ottenere dati presenti nel db
+      //post per inserire dati
+      //delete per cancellari dati
+      //patch aggiorna parte dei dati
+      //put sovrascrive dati
+      //dato che dobbiamo inviare dati utilizziamo post
+      //post ha bisogno di una url
+      //inoltre accetta "header" una mappa di intestazioni ovvero metadati che possono essere aggiunti alla richiesta in uscita
+      //body per allegare dati alla richiesta in uscita
+      //per la mappa di header ho le chiavi che sono gli identificatori e i valori sono impostazioni per quegli header
+      //questo header aiuterà a firebase a capire come sono formattati i dati
+      //con body passo i dati e in teoria tutto il widget groceryitem che già facevo risalire con pop
+      //cambierà solo la formatazzione perchè i dati dovranno essere passati in formato json
+      //abbiamo però l'oggetto json e il metodo encode che ci aiutano nella formattazione
+      //utilizzeremo una mappa per convertire i dati
+      //per formattarli prendo i dati che passavo nel groceryitem e avvolgo le chiavi tra virgolette
+      //firebase genera automaticamente l'id quindi non sarà necessario passarlo
+      //l'invio dei dati non è immediato perchè bisogna creare la richiesta
+      //essere inviata al backend e il backend poi deve gestirla
+      //per essere sicuri che la richiesta è stata analizzata con successo
+      //sfruttiamo il metodo post che fa un return della future<response>
+      //quindi aggiungiamo il metodo then oppure async await(di fronte al metodo che produce il futuro)
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(
+          {
+            'name': _enteredName,
+            'quantity': _enteredQuantity,
+            'category': _selectedCategory.title,
+          },
+        ),
+      );
+      //qui avremo accesso alla risposta, il quale ha un paio di proprietà
+      //ad esempio status code che è un int 200/201 allora ha funzionato mentre 400/404/500 non ha funzionato
+      //response.statusCode.
+      //quindi provo a stampare nella console lo status e il body
+      //dopodichè chiamo il metodo pop. Però per evitare problemi sul contesto che potrebbe ancora e
+      //perchè non potrei utilizzare il context dopo async perchè non sappiamo se è lo stesso
+      print(response.body);
+      print(response.statusCode);
+      //quindi aggiungo questo if per controllare se è a schermo oppure no
+      if (!context.mounted) {
+        return;
+      }
+      Navigator.of(context).pop();
+
       //posso passare i dati da questo screen allo screen della lista di grocery
       //per farlo utilizzo il navigator.pop (devo uscire da questo screen per andare nel prossimo)
       //si naviga vs la schermata A rimuovendo la schermata B "B= nuovo oggetto" "A= lista oggetti"
       //con pop inoltre possiamo passare alcuni dati
-      Navigator.of(context).pop(
-        GroceryItem(
-          //per id utilizzo il datastamp
-          id: DateTime.now().toString(),
-          //_enteredName salvato con save
-          name: _enteredName,
-          quantity: _enteredQuantity,
-          category: _selectedCategory,
-        ),
-      );
+
+      //commento il navigator perchè voglio passare i dati solo a firebase
+      //Navigator.of(context).pop(
+      ///GroceryItem(
+      //per id utilizzo il datastamp
+      //id: DateTime.now().toString(),
+      //_enteredName salvato con save
+      //name: _enteredName,
+      //quantity: _enteredQuantity,
+      //category: _selectedCategory,
+      //),
+      // );
     }
   }
 
