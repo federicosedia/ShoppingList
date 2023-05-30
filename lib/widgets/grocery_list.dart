@@ -35,8 +35,8 @@ class _GroceryListState extends State<GroceryList> {
 
   //sposto tutta la parte di estrazione in loaditems
   void _loadItems() async {
-    final url = Uri.https('shopping-list-app-3fce2-default-rtdb.firebaseio.com',
-        'shopping-list.json');
+    final url = Uri.https(
+        'shop-list-fe-default-rtdb.firebaseio.com', 'shopping-list.json');
     final response = await http.get(url);
 //gli errori di solito sono >400 quindi posso prevedere una schermata diversa
 //piuttosto che bloccare l'utente quando riceve un errore
@@ -54,8 +54,7 @@ class _GroceryListState extends State<GroceryList> {
     //la mappa, valore della prima mappa, ha string e dynamic
     //string data dalla chiave di categoria name e quantity
     //dynamic invece perchè il valore cambia tra quantità stringa e categoria
-    final Map<String, dynamic>? listData =
-        json.decode(response.body) as Map<String, dynamic>?;
+    final Map<String, dynamic> listData = json.decode(response.body);
     //lista dove salverò gli oggetti che voglio ottenere
     //è una lista temporanea perche poi voglio sostituire l'elenco
     //che usiamo in _groceryItems nelle classi con questo elenco dopo aver passato gli elementi caricati
