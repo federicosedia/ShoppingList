@@ -9,6 +9,7 @@ import 'package:shopping_list/models/category.dart';
 //verrà fatto tramite una richiesta http
 //con "as" diciamo che tutti i pacchetti verranno raggruppati in un oggetto con nome http
 import 'package:http/http.dart' as http;
+import 'package:shopping_list/models/grocery_item.dart';
 
 class NewItem extends StatefulWidget {
   const NewItem({super.key});
@@ -27,6 +28,10 @@ class _NewItemState extends State<NewItem> {
   var _enteredName = '';
   var _enteredQuantity = 1;
   var _selectedCategory = categories[Categories.vegetables]!;
+  //voglio aggiungere una nuova proprietà per non permettere di generare una nuova richiesta dopo che se ne è fatta una
+  // e si sta attendendo di tornare nella pagina di riepilogo
+  //questo perchè provando a fare una richiesta ci vorranno dei secondi prima che venga elaborata
+  var _isSending = false;
 
 //in questa funzione attivo la validazione
 //quindi il metodo save non può essere eseguito prima del build e che quindi form è stato chiamato
@@ -40,6 +45,13 @@ class _NewItemState extends State<NewItem> {
   void _saveItem() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
+      //qui voglio impostare il valore issending=true ovvero dopo aver salvato il nuovo item
+      //quindi dopo aver salvato l'oggetto chiamo il setstate
+      setState(() {
+        if (_isSending = false) {
+          _isSending = true;
+        }
+      });
       //creiamo una url e la salviamo nella variabile url
       //possiamo utilizzare la classe uri che accetta come costruttore https
       //che crea una url che punta ad un backend https
@@ -94,7 +106,16 @@ class _NewItemState extends State<NewItem> {
       if (!context.mounted) {
         return;
       }
-      Navigator.of(context).pop();
+
+      final Map<String, dynamic> resData = json.decode(response.body);
+      Navigator.of(context).pop(
+        GroceryItem(
+          id: resData['name'],
+          name: _enteredName,
+          quantity: _enteredQuantity,
+          category: _selectedCategory,
+        ),
+      );
 
       //posso passare i dati da questo screen allo screen della lista di grocery
       //per farlo utilizzo il navigator.pop (devo uscire da questo screen per andare nel prossimo)
@@ -269,14 +290,25 @@ class _NewItemState extends State<NewItem> {
                 children: [
                   //reimpostare il modulo
                   TextButton(
-                      onPressed: () {
-                        //metodo reset per reseattare
-                        _formKey.currentState!.reset();
-                      },
+                      //dopo che salvo l'oggetto e sono nella schermata e prima quindi di essere catapultato nella maschera di riepilogo
+                      //voglio rendere la funzione onpressed nulla cosi da non permettere all'utente di fare un secondo inserimento
+                      onPressed: _isSending
+                          ? null
+                          : () {
+                              //metodo reset per reseattare
+                              _formKey.currentState!.reset();
+                            },
                       child: const Text('Rest')),
                   //inviare il modulo
                   ElevatedButton(
-                      onPressed: _saveItem, child: const Text('Invia')),
+                      onPressed: _isSending ? null : _saveItem,
+                      child: _isSending
+                          ? SizedBox(
+                              height: 8,
+                              width: 8,
+                              child: CircularProgressIndicator(),
+                            )
+                          : const Text('Invia')),
                 ],
               )
             ],

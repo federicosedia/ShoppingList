@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shopping_list/models/category.dart';
 import 'package:shopping_list/data/categories.dart';
 import 'package:shopping_list/models/grocery_item.dart';
 import 'package:shopping_list/widgets/new_item.dart';
@@ -14,6 +15,14 @@ class GroceryList extends StatefulWidget {
 }
 
 class _GroceryListState extends State<GroceryList> {
+  //qui salverò tutti gli oggetti che andrò ad aggiungere tramite il form
+  //ed essendo una lista di oggetti di quel tipo salvo in questo modo la proprietà
+  //voglio riassegnare groceryitems
+  List<GroceryItem> _groceryItems = [];
+  String? error;
+  //voglio aggiungere uno spinner prima che i dati vengono ricaricati quando runniamo l'app
+
+  var isLoading = true;
   //poichè siamo in una classe di state aggiungo initstate
   //che consente di fare alcune operazioni di inizializzazione
   //quindi possiamo inviare la richiesta
@@ -29,6 +38,15 @@ class _GroceryListState extends State<GroceryList> {
     final url = Uri.https('shopping-list-app-3fce2-default-rtdb.firebaseio.com',
         'shopping-list.json');
     final response = await http.get(url);
+//gli errori di solito sono >400 quindi posso prevedere una schermata diversa
+//piuttosto che bloccare l'utente quando riceve un errore
+//quindi qui aggiorno il messaggio in error
+//nell'if mostro questa schermata con questo messaggio se error != null
+    if (response.statusCode >= 400) {
+      setState(() {
+        error = 'Errore, si prega di riprovare più tardi';
+      });
+    }
     //dato che possiamo vedere gli oggetti ma sottoforma di json
     //converto da json a dart in un elenco di item grocery
     //mappa di string, map perchè la chiave è la stringa del nodo
@@ -36,12 +54,13 @@ class _GroceryListState extends State<GroceryList> {
     //la mappa, valore della prima mappa, ha string e dynamic
     //string data dalla chiave di categoria name e quantity
     //dynamic invece perchè il valore cambia tra quantità stringa e categoria
-    final Map<String, dynamic> listData = json.decode(response.body);
+    final Map<String, dynamic>? listData =
+        json.decode(response.body) as Map<String, dynamic>?;
     //lista dove salverò gli oggetti che voglio ottenere
     //è una lista temporanea perche poi voglio sostituire l'elenco
     //che usiamo in _groceryItems nelle classi con questo elenco dopo aver passato gli elementi caricati
 
-    final List<GroceryItem> _loadedItem = [];
+    final List<GroceryItem> loadedItem = [];
     for (final item in listData.entries) {
       //per ottenere la categoria dall'elenco delle categorie
       //voglio raggiungere la mappa delle categorie e tutte le voci
@@ -61,21 +80,21 @@ class _GroceryListState extends State<GroceryList> {
       //chiamo il metodo add e dato che sto aggiungendo un groceryitem
       //specifico tutti i parametri
       //tramite questa formatazzione accediamo alla chiave con un nome all'interno di una mappa annidata
-      _loadedItem.add(GroceryItem(
+      loadedItem.add(GroceryItem(
           id: item.key,
           name: item.value['name'],
           quantity: item.value['quantity'],
           category: category));
     }
     setState(() {
-      _groceryItems = _loadedItem;
+      _groceryItems = loadedItem;
+      //dato che siamo nel metodo loaditem qui voglio fare in modo che all'inzio venga mostrato
+      //un'icona di caricamento anzichè la lista vuota "prima di ricevere col get le info dal db"
+      //quindi isloading sarà uguale false dopo aver caricato gli elementi
+      isLoading = false;
     });
   }
 
-  //qui salverò tutti gli oggetti che andrò ad aggiungere tramite il form
-  //ed essendo una lista di oggetti di quel tipo salvo in questo modo la proprietà
-  //voglio riassegnare groceryitems
-  List<GroceryItem> _groceryItems = [];
 //context non disponibile in stateless quindi aggiungo come argomento
   void _addItem() async {
     //push -> la mia nuova screen va sopra quella precedente
@@ -86,7 +105,7 @@ class _GroceryListState extends State<GroceryList> {
     //quindi dovrò utilizzare async e await
     //push produce un futuro che contiene i dati che possono essere tornati tramite la nuova schermata
     //può essere nullo perchè possiamo tornare indietro
-    await Navigator.of(context).push<GroceryItem>(
+    final newItem = await Navigator.of(context).push<GroceryItem>(
       MaterialPageRoute(
         builder: (ctx) => const NewItem(),
       ),
@@ -97,7 +116,13 @@ class _GroceryListState extends State<GroceryList> {
     //come gia fatto per il saveitem qui andrò a recuperare i dati quindi dopo essermi dichiarato l'url
     //mi dichiaro la response e la stampo a console
     //qui carico gli item tramite il metodo definito sopra
-    _loadItems();
+    //_loadItems();
+    if (newItem == null) {
+      return;
+    }
+    setState(() {
+      _groceryItems.add(newItem);
+    });
   }
 
   void _removeditem(GroceryItem item) {
@@ -111,6 +136,10 @@ class _GroceryListState extends State<GroceryList> {
     Widget content = const Center(
       child: Text('No items added yet'),
     );
+    //quindi qui aggiungo a schermo che se isloading =true a schermo vedrò quella immagine
+    if (isLoading) {
+      content = const Center(child: CircularProgressIndicator());
+    }
 
     if (_groceryItems.isNotEmpty) {
       content = ListView.builder(
@@ -140,6 +169,12 @@ class _GroceryListState extends State<GroceryList> {
             trailing: Text(_groceryItems[index].quantity.toString()),
           ),
         ),
+      );
+    }
+//se ricevo un'errore quindi mostrerò una schermata con l'errore
+    if (error != null) {
+      content = Center(
+        child: Text(error!),
       );
     }
 
