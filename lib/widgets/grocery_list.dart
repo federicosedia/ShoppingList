@@ -124,10 +124,28 @@ class _GroceryListState extends State<GroceryList> {
     });
   }
 
-  void _removeditem(GroceryItem item) {
+  void _removeditem(GroceryItem item) async {
+    //con index salvo l'id dell'item cosi da poterlo salvare nuovamente in caso di errore nella cancellazione
+    final index = _groceryItems.indexOf(item);
+    //con la rimozione il delete punta ad un singolo item del db
+    //quindi aggiungo nel secondo pezzo di stringa /<id_item>
+    //non ho bisogno di aggiungere async e await come quando aggiungiamo un item
+    //se viene fuori un errore potrebbe cancellarsi solo localmente e non anche a db
     setState(() {
       _groceryItems.remove(item);
     });
+    final url = Uri.https('shop-list-fe-default-rtdb.firebaseio.com',
+        'shopping-list/${item.id}.json');
+    final response = await http.delete(url);
+//se qualcosa va storto aggiungo di nuovo l'item
+//per aggiungerlo con lo stesso id utilizzo insert
+    if (response.statusCode >= 400) {
+      setState(
+        () {
+          _groceryItems.insert(index, item);
+        },
+      );
+    }
   }
 
   @override
