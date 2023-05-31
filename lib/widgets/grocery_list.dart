@@ -22,7 +22,9 @@ class _GroceryListState extends State<GroceryList> {
   String? error;
   //voglio aggiungere uno spinner prima che i dati vengono ricaricati quando runniamo l'app
 
-  var isLoading = true;
+  //mi creo una nuova variabile nella quale salverò la lista di prodotti
+  //dato che non può essere null utilizzo "late" che assicura che dopo verrà valorizzato prima che verrà utilizzato
+  late Future<List<GroceryItem>> _loadedItems;
   //poichè siamo in una classe di state aggiungo initstate
   //che consente di fare alcune operazioni di inizializzazione
   //quindi possiamo inviare la richiesta
@@ -30,22 +32,30 @@ class _GroceryListState extends State<GroceryList> {
   @override
   void initState() {
     super.initState();
-    _loadItems();
+    //uso la nuova variabile per prendermi i prodotti ricevuti dal get e salvarmeli
+    _loadedItems = _loadItems();
   }
 
   //sposto tutta la parte di estrazione in loaditems
-  void _loadItems() async {
+  //posso cambiare il tipo da void a list<GroceryItem> però dato che stiamo usando async otteniamo un errore
+  //perchè con async ritorniamo un future. Quindi sarà di tipo future
+  //con le modifiche apportate abbiamo ottenuto una loaditems più snella
+  Future<List<GroceryItem>> _loadItems() async {
     final url = Uri.https(
         'shop-list-fe-default-rtdb.firebaseio.com', 'shopping-list.json');
+
+//throw Excpetion blocca l'esecuzione e restituisce l'errore incontrato
+//con try e catch. In try aggiungiamo il codice che può fallire
+//catch aggiunto dopo le parentesi graffe cattura l'errore che può essere ricevuto
+//quindi appena si riceve un errore viene catchato like throw expection
+
     final response = await http.get(url);
-//gli errori di solito sono >400 quindi posso prevedere una schermata diversa
+    //gli errori di solito sono >400 quindi posso prevedere una schermata diversa
 //piuttosto che bloccare l'utente quando riceve un errore
 //quindi qui aggiorno il messaggio in error
 //nell'if mostro questa schermata con questo messaggio se error != null
     if (response.statusCode >= 400) {
-      setState(() {
-        error = 'Errore, si prega di riprovare più tardi';
-      });
+      throw Exception("Please try again later.");
     }
     //dato che possiamo vedere gli oggetti ma sottoforma di json
     //converto da json a dart in un elenco di item grocery
@@ -54,6 +64,18 @@ class _GroceryListState extends State<GroceryList> {
     //la mappa, valore della prima mappa, ha string e dynamic
     //string data dalla chiave di categoria name e quantity
     //dynamic invece perchè il valore cambia tra quantità stringa e categoria
+
+//aggiungo questo if perchè se non ho item nel backend allora mi trovo nella situazione in cui
+//non posso andare avanti e rimango bloccato. questo perchè listdata è di tipo map
+//però non avendo item ottengo null. Nell'if pongo response.body=='null' e non null perchè firebase
+//restituisce la stringa null
+//inoltre restituisco lista vuota perchè ci si aspetta una lista
+//questo perchè il caricamento degli item dovrebbe restituire un elenco
+    if (response.body == 'null') {
+      //posso rimuovere il setstate sempre grazie al futurebuilder
+      return [];
+    }
+
     final Map<String, dynamic> listData = json.decode(response.body);
     //lista dove salverò gli oggetti che voglio ottenere
     //è una lista temporanea perche poi voglio sostituire l'elenco
@@ -85,13 +107,10 @@ class _GroceryListState extends State<GroceryList> {
           quantity: item.value['quantity'],
           category: category));
     }
-    setState(() {
-      _groceryItems = loadedItem;
-      //dato che siamo nel metodo loaditem qui voglio fare in modo che all'inzio venga mostrato
-      //un'icona di caricamento anzichè la lista vuota "prima di ricevere col get le info dal db"
-      //quindi isloading sarà uguale false dopo aver caricato gli elementi
-      isLoading = false;
-    });
+//eliminiamo set state e ritorniamo i nostri loaditem
+//tolgo il metodo try-catch perchè con il futurebuilder possiamo gestire gli errori in modo diverso
+
+    return loadedItem;
   }
 
 //context non disponibile in stateless quindi aggiungo come argomento
@@ -150,51 +169,6 @@ class _GroceryListState extends State<GroceryList> {
 
   @override
   Widget build(BuildContext context) {
-    Widget content = const Center(
-      child: Text('No items added yet'),
-    );
-    //quindi qui aggiungo a schermo che se isloading =true a schermo vedrò quella immagine
-    if (isLoading) {
-      content = const Center(child: CircularProgressIndicator());
-    }
-
-    if (_groceryItems.isNotEmpty) {
-      content = ListView.builder(
-        itemCount: _groceryItems.length,
-        itemBuilder: (BuildContext context, int index) =>
-            //avvolgendo il widget listitle con dismissibile
-            //posso scorrere gli elementi per eliminarli
-            //per farlo aggiungo anche la chiave e utilizzo la valuekey
-            //con la valuekey utilizzo come indiceunivoco l'id dell'oggetto
-            //inoltre utilizzo ondismissed per permettere tramite lo scorrimento
-            //di far avviare un metodo che ho creato
-            //esso andrà a rimuovere l'oggetto che si sta scorrendo
-            Dismissible(
-          key: ValueKey(_groceryItems[index].id),
-          onDismissed: (direction) {
-            _removeditem(_groceryItems[index]);
-          },
-          child: ListTile(
-            title: Text(_groceryItems[index].name),
-            //indicatore per la categoria: quadrato con un colore della categoria
-            leading: Container(
-              width: 24,
-              height: 24,
-              color: _groceryItems[index].category.color,
-            ),
-            //quantità
-            trailing: Text(_groceryItems[index].quantity.toString()),
-          ),
-        ),
-      );
-    }
-//se ricevo un'errore quindi mostrerò una schermata con l'errore
-    if (error != null) {
-      content = Center(
-        child: Text(error!),
-      );
-    }
-
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -208,7 +182,80 @@ class _GroceryListState extends State<GroceryList> {
               icon: const Icon(Icons.add))
         ],
       ),
-      body: content,
+      //costruisco un nuovo widget che mi permette di ottenere dei dati quando risolve un future
+      //quindi possiamo utilizzarlo qui invece di content
+      //ha bisogno di due parametri chiave: future ovvero il future a cui dovrà attendere e ascoltare
+      //e builder che vuole un funzione che viene eseguita ogni volta che il future produce dati
+      body: FutureBuilder(
+        //voglio un future che produca una risposta dopo che arrivano i dati dalla get http
+        //risultato della chiamata alla funzione loaditems
+        //però non è consigliabile farlo in questo modo
+        //perchè se si chiama loaditems per ottenere il future che viene passato come valore al costruttore
+        //viene eseguito ogni volta che il build viene eseguito, quindi quando cambia lo stato
+        //quindi converebbe utilizzare initstate e quindi la nuova variabile che prende i valori e li pone uguale a quelli caricati
+
+        future: _loadedItems,
+        //context= contesto passato da flutter
+        //snapshot= da accesso allo stato attuale del future e ai dati che potrebbero essere prodotti
+        builder: (context, snapshot) {
+          //facciamo un return in base ai diversi stati del future
+          //per farlo uso snapshot. Con connectionstate posso usare l'enum
+          //come primo utilizzo waiting quindi se siamo in attesa restituiamo lo spinner di caricamento
+
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            //quindi qui aggiungo a schermo che se isloading =true a schermo vedrò quella immagine
+            const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(
+              //con snapshot ho accesso alla proprietà error che mi da accesso all'oggetto exception
+              //quindi chiamo anche il tostring per avere la stringa
+              child: Text(snapshot.error.toString()),
+            );
+          }
+          //voglio gestire il caso in cui non ci sia attessa e non ho errori
+          //quindi voglio avere l'elenco dei dati
+          //se non ho dati allora restituisco
+          if (snapshot.data!.isEmpty) {
+            return const Center(
+              child: Text('No items added yet'),
+            );
+          }
+          //se ho i dati invece il listview:
+          else {
+            return ListView.builder(
+              //cambio il groceryitem con snapshot.data!
+              //perchè l'elenco è disponibile anche con l'oggetto snapshot
+              itemCount: snapshot.data!.length,
+              itemBuilder: (BuildContext context, int index) =>
+                  //avvolgendo il widget listitle con dismissibile
+                  //posso scorrere gli elementi per eliminarli
+                  //per farlo aggiungo anche la chiave e utilizzo la valuekey
+                  //con la valuekey utilizzo come indiceunivoco l'id dell'oggetto
+                  //inoltre utilizzo ondismissed per permettere tramite lo scorrimento
+                  //di far avviare un metodo che ho creato
+                  //esso andrà a rimuovere l'oggetto che si sta scorrendo
+                  Dismissible(
+                key: ValueKey(snapshot.data![index].id),
+                onDismissed: (direction) {
+                  _removeditem(snapshot.data![index]);
+                },
+                child: ListTile(
+                  title: Text(snapshot.data![index].name),
+                  //indicatore per la categoria: quadrato con un colore della categoria
+                  leading: Container(
+                    width: 24,
+                    height: 24,
+                    color: snapshot.data![index].category.color,
+                  ),
+                  //quantità
+                  trailing: Text(snapshot.data![index].quantity.toString()),
+                ),
+              ),
+            );
+          }
+        },
+      ),
     );
   }
 }
