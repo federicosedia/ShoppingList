@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:shopping_list/models/category.dart';
 import 'package:shopping_list/data/categories.dart';
 import 'package:shopping_list/models/grocery_item.dart';
 import 'package:shopping_list/widgets/new_item.dart';
@@ -216,7 +215,7 @@ class _GroceryListState extends State<GroceryList> {
           //voglio gestire il caso in cui non ci sia attessa e non ho errori
           //quindi voglio avere l'elenco dei dati
           //se non ho dati allora restituisco
-          if (snapshot.data!.isEmpty) {
+          if (snapshot.data != null) {
             return const Center(
               child: Text('No items added yet'),
             );
@@ -226,7 +225,7 @@ class _GroceryListState extends State<GroceryList> {
             return ListView.builder(
               //cambio il groceryitem con snapshot.data!
               //perchè l'elenco è disponibile anche con l'oggetto snapshot
-              itemCount: snapshot.data!.length,
+              itemCount: snapshot.data!.length as int,
               itemBuilder: (BuildContext context, int index) =>
                   //avvolgendo il widget listitle con dismissibile
                   //posso scorrere gli elementi per eliminarli
